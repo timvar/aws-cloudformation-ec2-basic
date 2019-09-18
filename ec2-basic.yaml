@@ -7,12 +7,14 @@ Resources:
       ImageId: "ami-0ce71448843cb18a1"
       InstanceType: t2.micro
       KeyName: pepe
+      SecurityGroups: 
+        - "PapuSecurityGroup"
       Tags:
         -
           Key: "environment"
           Value: "dev"
         
-  InstanceSecurityGroup:
+  PapuSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow http to client host
@@ -21,3 +23,4 @@ Resources:
         FromPort: 80
         ToPort: 80
         CidrIp: 0.0.0.0/0
+      VpcId: "vpc-a74e43c1"
