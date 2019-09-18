@@ -1,0 +1,9 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: ec2 basic settings region Ireland
+Resources:
+  MyEC2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties: 
+      ImageId: "ami-0ce71448843cb18a1"
+      InstanceType: t2.micro
+      KeyName: pepe
