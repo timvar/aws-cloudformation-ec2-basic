@@ -8,6 +8,6 @@ Resources:
       InstanceType: t2.micro
       KeyName: pepe
       Tags:
-        - 
+        -
           Key: "environment"
           Value: "dev"
