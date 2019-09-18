@@ -8,7 +8,7 @@ Resources:
       InstanceType: t2.micro
       KeyName: pepe
       SecurityGroups: 
-        - "PapuSecurityGroup"
+        - !Ref PapuSecurityGroup
       Tags:
         -
           Key: "environment"
