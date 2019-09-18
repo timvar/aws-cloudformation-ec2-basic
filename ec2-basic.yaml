@@ -11,11 +11,7 @@ Resources:
         -
           Key: "environment"
           Value: "dev"
-        -
-          Key: "stage"
-          Value: "dev"
         
-
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
