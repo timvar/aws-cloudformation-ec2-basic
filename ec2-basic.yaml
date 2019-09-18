@@ -2,17 +2,19 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: ec2 basic settings region Ireland
 Resources:
   MyEC2Instance:
-    Type: "AWS::EC2::Instance"
+    Type: AWS::EC2::Instance
     Properties: 
-      ImageId: "ami-0ce71448843cb18a1"
+      ImageId: ami-0ce71448843cb18a1
       InstanceType: t2.micro
       KeyName: pepe
-      SecurityGroups: 
+      SecurityGroups:
         - !Ref PapuSecurityGroup
+      SubnetId: subnet-18ec5442  
+
       Tags:
         -
-          Key: "environment"
-          Value: "dev"
+          Key: environment
+          Value: dev
         
   PapuSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -23,4 +25,4 @@ Resources:
         FromPort: 80
         ToPort: 80
         CidrIp: 0.0.0.0/0
-      VpcId: "vpc-a74e43c1"
+      VpcId: vpc-a74e43c1
