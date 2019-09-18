@@ -7,3 +7,7 @@ Resources:
       ImageId: "ami-0ce71448843cb18a1"
       InstanceType: t2.micro
       KeyName: pepe
+      Tags:
+        - 
+          Key: "environment"
+          Value: "dev"
