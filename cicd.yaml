@@ -1,0 +1,188 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CodePipeline and CodeDeploy'
+Parameters:
+  BucketName:
+    Description: 'The S3 bucket name for lambda deployment.'
+    Type: String
+  GitHubOwner:
+    Description: 'The owner of the GitHub repository.'
+    Type: String
+  GitHubOAuthToken:
+    Description: 'The OAuthToken of the GitHub user.'
+    Type: String
+  GitHubRepo:
+    Description: 'The GitHub repository.'
+    Type: String
+Resources:
+  ArtifactStore:
+    Type: "AWS::S3::Bucket"
+    Properties: 
+      VersioningConfiguration:
+        Status: Enabled
+  CodePipelineIAMRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - 'codepipeline.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+      - PolicyName: logs
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - s3:GetObject
+            - s3:GetObjectVersion
+            - s3:GetBucketVersioning
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - s3:PutObject
+            Resource:
+            - arn:aws:s3:::codepipeline*
+            - arn:aws:s3:::elasticbeanstalk*
+            Effect: Allow
+          - Action:
+            - codecommit:CancelUploadArchive
+            - codecommit:GetBranch
+            - codecommit:GetCommit
+            - codecommit:GetUploadArchiveStatus
+            - codecommit:UploadArchive
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - codedeploy:CreateDeployment
+            - codedeploy:GetApplicationRevision
+            - codedeploy:GetDeployment
+            - codedeploy:GetDeploymentConfig
+            - codedeploy:RegisterApplicationRevision
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - ec2:*
+            - cloudwatch:*
+            - s3:*
+            - cloudformation:*
+            - iam:PassRole
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - lambda:InvokeFunction
+            - lambda:ListFunctions
+            Resource: "*"
+            Effect: Allow
+  CodePipeline:
+    DependsOn:
+      - EC2Instance
+    Type: "AWS::CodePipeline::Pipeline"
+    Properties:
+      ArtifactStore:
+        Location: !Ref ArtifactStore
+        Type: S3
+      RoleArn: !Sub '${CodePipelineIAMRole.Arn}'
+      Stages:
+        - Name: Source
+          Actions: 
+          - Name: Source
+            ActionTypeId:
+              Category: Source 
+              Owner: ThirdParty 
+              Version: 1 
+              Provider: GitHub
+            OutputArtifacts:
+            - Name: staticwebsite
+            Configuration:
+              Owner: !Ref GitHubOwner
+              Repo: !Ref GitHubRepo
+              Branch: master
+              OAuthToken: !Ref GitHubOAuthToken
+        - Name: Deploy
+          Actions:
+          - Name: Deploy
+            ActionTypeId:
+              Category: Deploy 
+              Owner: AWS 
+              Version: 1 
+              Provider: CodeDeploy
+            InputArtifacts:
+            - Name: staticwebsite
+            Configuration:
+              ApplicationName: !Ref Application
+              DeploymentGroupName: !Ref DeploymentGroup
+        - Name: Test
+          Actions:
+          - Name: Test
+            ActionTypeId:
+              Category: Invoke 
+              Owner: AWS 
+              Version: 1 
+              Provider: Lambda
+            Configuration:
+              FunctionName: !Ref TestLambda
+              UserParameters: !Sub 'http://${EC2Instance.PublicDnsName}'
+  CodeDeployIAMRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - 'codedeploy.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      Path: '/'
+      ManagedPolicyArns:
+      - 'arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole'
+  Application:
+    Type: "AWS::CodeDeploy::Application"
+  DeploymentGroup:
+    Type: "AWS::CodeDeploy::DeploymentGroup"
+    Properties:
+      ApplicationName: !Ref Application
+      Ec2TagFilters:
+        - Key: DeploymentGroup
+          Type: KEY_AND_VALUE
+          Value: !Ref AWS::StackName
+      ServiceRoleArn: !Sub '${CodeDeployIAMRole.Arn}'
+  SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'static website'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - FromPort: 80
+        ToPort: 80
+        IpProtocol: tcp
+        CidrIp: '0.0.0.0/0'
+  EC2InstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: '/'
+      Roles:
+      - !Ref EC2InstanceIAMRole
+  EC2InstanceIAMRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - 'ec2.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      Path: '/'
+      ManagedPolicyArns:
+      - 'arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforAWSCodeDeploy'
+  
+  
